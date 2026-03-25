@@ -13,12 +13,39 @@ Each tick submits an asynclet task. If you set `latest_task_name`, asynclet stor
 ```python
 import asynclet
 
-asynclet.schedule_interval(load_data, seconds=60, latest_task_name="load_data")
+counter = {"n": 0}
+
+
+def load_data() -> int:
+    counter["n"] += 1
+    return counter["n"]
+
+
+asynclet.schedule_interval(load_data, seconds=0.05, latest_task_name="load_data")
 
 m = asynclet.get_default_manager()
-latest = m.get("global:load_data")
-if latest and latest.done:
-    print(latest.result)
+latest = None
+
+import time
+
+deadline = time.monotonic() + 2.0
+while time.monotonic() < deadline:
+    latest = m.get("global:load_data")
+    if latest and latest.done:
+        break
+    time.sleep(0.01)
+
+print(f"scheduled_latest_done= {bool(latest and latest.done)}")
+print(f"scheduled_latest_result= {latest.result if latest and latest.done else None}")
+
+asynclet.shutdown_scheduler(wait=False)
+```
+
+Example output (after waiting for the first scheduled tick to finish):
+
+```text
+scheduled_latest_done= True
+scheduled_latest_result= 1
 ```
 
 ## Cron scheduling

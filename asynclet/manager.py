@@ -24,7 +24,13 @@ def _bind_progress_queue(
     args: Tuple[Any, ...],
     kwargs: Dict[str, Any],
 ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-    """Pass the Janus queue as the first positional arg if named ``queue`` / ``progress_queue``, else as a keyword."""
+    """
+    Bind a Janus queue into an async callable's signature.
+
+    If the callable's first parameter is named `queue` or `progress_queue`, the
+    queue is passed positionally. Otherwise, it is injected as a keyword argument
+    if a matching parameter exists.
+    """
     sig = inspect.signature(func)
     params = list(sig.parameters.keys())
     if not params:
@@ -48,7 +54,13 @@ def _wants_progress_queue(func: Callable[..., Any]) -> bool:
 
 
 class TaskManager:
-    """Submits work to the asynclet worker, tracks tasks, and trims completed entries."""
+    """
+    Submits work to the asynclet worker, tracks tasks, and trims completed entries.
+
+    The manager acts as an in-memory registry keyed by task id (and optional
+    `global:{name}` aliases). For rerun-driven UIs, keep a manager around when
+    you create many tasks over time and periodically call `cleanup()`.
+    """
 
     def __init__(self, *, max_completed: int = 256) -> None:
         self._tasks: Dict[str, Task[Any]] = {}
@@ -63,6 +75,18 @@ class TaskManager:
         retry: Optional[RetryPolicy] = None,
         **kwargs: Any,
     ) -> Task[T]:
+        """
+        Submit `func` to the asynclet worker.
+
+        Args:
+            func: Sync or async callable to execute.
+            *args: Positional arguments passed to `func` (after progress queue injection, if any).
+            retry: Optional `RetryPolicy` for exception-based retries.
+            **kwargs: Keyword arguments passed to `func`.
+
+        Returns:
+            A `Task[T]` handle that can be polled from the caller thread.
+        """
         task_id = new_task_id()
         task: Task[T] = Task(task_id)
         with self._lock:
@@ -72,11 +96,17 @@ class TaskManager:
         return task
 
     def get(self, task_id: str) -> Optional[Task[Any]]:
+        """Get a task by id, or `None` if missing."""
         with self._lock:
             return self._tasks.get(task_id)
 
     def cleanup(self) -> int:
-        """Remove oldest completed tasks if the registry exceeds ``max_completed``."""
+        """
+        Remove oldest completed tasks if the registry exceeds `max_completed`.
+
+        Returns:
+            Number of removed entries.
+        """
         removed = 0
         with self._lock:
             done_ids = [tid for tid, t in self._tasks.items() if t.done]
@@ -169,12 +199,17 @@ class TaskManager:
             task._clear_progress_queue_ref()
 
     def register_global(self, task: Task[Any], name: str) -> None:
-        """Alias a task for shared lookup (e.g. ``get(f'global:{name}')``)."""
+        """
+        Alias a task for shared lookup.
+
+        After registering, `get(f"global:{name}")` returns the task.
+        """
         with self._lock:
             self._tasks[f"global:{name}"] = task
 
 
 def get_default_manager() -> TaskManager:
+    """Return the process-wide default `TaskManager` (lazy singleton)."""
     global _default_manager
     with _default_manager_lock:
         if _default_manager is None:
@@ -191,11 +226,22 @@ def run(
     **kwargs: Any,
 ) -> Task[T]:
     """
-    Run ``func`` on the asynclet worker thread.
+    Run `func` on the asynclet worker thread and return a pollable `Task`.
 
-    Async functions run on the worker event loop. Sync functions run via ``asyncer.asyncify``
-    (thread pool). If the coroutine declares a ``progress_queue`` or ``queue`` parameter, a
-    :class:`janus.Queue` is created and injected for streaming progress to the UI thread.
+    Async callables run on the dedicated worker event loop. Sync callables run via
+    `asyncer.asyncify` (thread pool). If the async callable declares a `progress_queue`
+    or `queue` parameter, a `janus.Queue` is created and injected to stream progress
+    values back to the caller thread (drain via `Task.progress`).
+
+    Args:
+        func: Sync or async callable.
+        *args: Positional args for `func` (after progress queue injection, if any).
+        manager: Optional `TaskManager` to submit into (defaults to the process-wide manager).
+        retry: Optional `RetryPolicy` for exception-based retries.
+        **kwargs: Keyword args for `func`.
+
+    Returns:
+        A `Task[T]` handle.
     """
     m = manager or get_default_manager()
     return m.submit(func, *args, retry=retry, **kwargs)

@@ -1,4 +1,8 @@
-"""Streamlit session helpers (no hard dependency on Streamlit — pass ``st.session_state``)."""
+"""
+Session helpers for rerun-driven UIs (no hard dependency on Streamlit).
+
+Pass `st.session_state` (or any mapping-like object) to store tasks across reruns.
+"""
 
 from __future__ import annotations
 
@@ -10,15 +14,16 @@ def session_tasks(
     key: str = "asynclet_tasks",
 ) -> Dict[str, Any]:
     """
-    Return a task registry dict stored on ``session_state[key]``.
+    Return a task registry dict stored on `session_state[key]`.
 
-    Example::
+    This is a convenience for Streamlit apps that want a stable dict for named tasks.
 
-        import streamlit as st
-        import asynclet
+    Args:
+        session_state: `st.session_state` or a compatible mapping-like object.
+        key: Storage key used within the session state.
 
-        tasks = asynclet.session_tasks(st.session_state)
-        tasks["fetch"] = asynclet.run(load_data)
+    Returns:
+        A mutable dict that persists across reruns.
     """
     if key not in session_state:
         session_state[key] = {}

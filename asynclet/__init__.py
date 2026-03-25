@@ -1,4 +1,10 @@
-"""Async task layer for Streamlit: background execution, polling, progress, cancellation."""
+"""
+asynclet: background tasks for rerun-driven UIs.
+
+asynclet provides a small polling-friendly API for running sync/async callables on a
+dedicated background asyncio event loop. It is designed for Streamlit-style apps
+where the main script reruns frequently and must not block.
+"""
 
 from asynclet.manager import TaskManager, get_default_manager, run
 from asynclet.retry import RetryPolicy
@@ -31,4 +37,4 @@ __all__ = [
     "session_tasks",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

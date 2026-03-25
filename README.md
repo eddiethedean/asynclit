@@ -31,6 +31,14 @@ else:
 
 On each rerun, check `task.done` and read `task.result` when finished.
 
+Example output (from the included test app `tests/streamlit_apps/asynclet_poll_app.py` via Streamlit AppTest):
+
+```text
+run 0 ['wait']
+run 1 ['ready:138']
+... last ['ready:138']
+```
+
 ## Public API
 
 | Item | Role |

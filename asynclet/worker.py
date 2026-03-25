@@ -20,7 +20,12 @@ def _run_loop(loop: asyncio.AbstractEventLoop, ready: threading.Event) -> None:
 
 
 def get_worker_loop() -> asyncio.AbstractEventLoop:
-    """Return the dedicated asyncio loop (starts the worker thread on first use)."""
+    """
+    Return the dedicated asyncio event loop (starts the worker thread on first use).
+
+    The loop is hosted in a daemon thread named `asynclet-worker`. This is a
+    process-wide singleton: all tasks submitted through asynclet share this loop.
+    """
     global _loop, _thread
     with _lock:
         if _thread is not None and _thread.is_alive() and _loop is not None:
@@ -42,6 +47,13 @@ def get_worker_loop() -> asyncio.AbstractEventLoop:
 
 
 def submit_coro(coro: Coroutine[Any, Any, T]) -> concurrent.futures.Future[T]:
+    """
+    Schedule a coroutine on the worker loop and return a `concurrent.futures.Future`.
+
+    This is the internal bridge used by `TaskManager`. It is safe to call from:
+    - non-async threads (uses `asyncio.run_coroutine_threadsafe`)
+    - the worker loop itself (creates an asyncio task and bridges completion)
+    """
     loop = get_worker_loop()
     try:
         running = asyncio.get_running_loop()
@@ -71,6 +83,11 @@ def submit_coro(coro: Coroutine[Any, Any, T]) -> concurrent.futures.Future[T]:
 
 
 def shutdown_worker() -> None:
+    """
+    Stop the worker loop and join the worker thread (best effort).
+
+    Registered via `atexit` so most processes shut down cleanly.
+    """
     global _loop, _thread
     with _lock:
         loop, _loop = _loop, None

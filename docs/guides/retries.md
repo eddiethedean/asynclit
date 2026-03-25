@@ -5,6 +5,17 @@ Retries are **opt-in** and **exception-based**.
 ```python
 import asynclet
 
+
+calls = {"n": 0}
+
+
+def flaky_fetch() -> str:
+    calls["n"] += 1
+    if calls["n"] < 3:
+        raise RuntimeError("transient")
+    return "ok"
+
+
 policy = asynclet.RetryPolicy(
     max_attempts=5,
     retry_on=(RuntimeError,),
@@ -14,7 +25,25 @@ policy = asynclet.RetryPolicy(
     jitter=0.0,
 )
 
-task = asynclet.run(fetch_data, retry=policy)
+task = asynclet.run(flaky_fetch, retry=policy)
+
+import time
+
+while not task.done:
+    time.sleep(0.01)
+
+print(f"retries_calls= {calls['n']}")
+print(f"retries_status= {task.status.value}")
+if task.done:
+    print(f"retries_result= {task.result}")
+```
+
+Example output (using a `fetch_data()` that fails twice then succeeds):
+
+```text
+retries_calls= 3
+retries_status= done
+retries_result= ok
 ```
 
 Notes:

@@ -20,7 +20,19 @@ class TaskStatus(Enum):
 
 
 class Task(Generic[T]):
-    """Handle for work running on the asynclet worker loop."""
+    """
+    A poll-friendly handle for work running on the asynclet worker loop.
+
+    `Task` is designed for synchronous, rerun-driven UIs (e.g. Streamlit):
+    submit work, keep the handle somewhere stable (session state), and on each
+    rerun poll `done` / `status` and read `result` when ready.
+
+    Notes:
+    - Results are bridged via a `concurrent.futures.Future`, so polling does not
+      require an event loop on the caller thread.
+    - Progress is available only when the submitted callable is **async** and
+      declares a `queue` or `progress_queue` parameter (see `asynclet.run`).
+    """
 
     def __init__(self, task_id: str) -> None:
         self.id = task_id
@@ -35,25 +47,45 @@ class Task(Generic[T]):
 
     @property
     def status(self) -> TaskStatus:
+        """Current lifecycle status."""
         return self._status
 
     @property
     def done(self) -> bool:
+        """Whether the task has completed (success, error, or cancellation)."""
         return self._result_fut.done()
 
     @property
     def result(self) -> T:
+        """
+        Return the result value.
+
+        Raises:
+            RuntimeError: If the task is not complete yet.
+            BaseException: Re-raises the underlying exception if the task failed.
+            concurrent.futures.CancelledError: If the task was cancelled.
+        """
         if not self._result_fut.done():
             raise RuntimeError("Task is not complete")
         return self._result_fut.result()
 
     @property
     def error(self) -> Optional[BaseException]:
+        """The captured exception if `status` is `ERROR`, otherwise `None`."""
         return self._error
 
     @property
     def progress(self) -> List[Any]:
-        """Drain pending progress values (non-blocking) from the Janus queue and any buffered tail."""
+        """
+        Drain progress values (non-blocking).
+
+        This returns any values currently available on the sync side of the Janus
+        queue, plus any tail buffered when the queue was closed (so late polls can
+        still observe final progress).
+
+        Returns:
+            A list of values in FIFO order. Empty when no progress is available.
+        """
         out: List[Any] = []
         q = self._progress_queue
         if q is not None:
@@ -74,7 +106,19 @@ class Task(Generic[T]):
         return out
 
     def cancel(self) -> bool:
-        """Request cancellation. Returns True if cancellation was scheduled or the result future was cancelled."""
+        """
+        Request cancellation.
+
+        Behavior:
+        - If the task is already terminal (`DONE`, `ERROR`, `CANCELLED`), returns `False`.
+        - If the underlying asyncio task is running, schedules `asyncio.Task.cancel()`
+          on the worker loop and returns `True`.
+        - If the task is still pending (not yet bound on the worker), cancels the
+          result future and returns whether it was cancelled.
+
+        Returns:
+            `True` if a cancellation request was scheduled/performed, otherwise `False`.
+        """
         with self._lock:
             if self._status in (
                 TaskStatus.DONE,

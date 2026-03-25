@@ -17,6 +17,14 @@ else:
     st.write("Loading…")
 ```
 
+Observed output in `tests/streamlit_apps/asynclet_poll_app.py` (AppTest runs):
+
+```text
+run 0 ['wait']
+run 1 ['ready:138']
+... last ['ready:138']
+```
+
 ## Progress streaming (async only)
 
 ```python
@@ -36,5 +44,13 @@ for x in task.progress:
     st.write(f"tick: {x}")
 if task.done:
     st.write(f"done: {task.result}")
+```
+
+Observed output in `tests/streamlit_apps/asynclet_progress_app.py` (AppTest runs):
+
+```text
+run 0 ['started']
+run 1 ['tick:0', 'tick:1', 'tick:2', 'tick:3', 'done:4']
+... last ['done:4']
 ```
 

@@ -12,11 +12,14 @@ ExceptionTypes = Tuple[Type[BaseException], ...]
 @dataclass(frozen=True)
 class RetryPolicy:
     """
-    Retry configuration for tasks that raise exceptions.
+    Retry configuration for exception-based retries.
+
+    This policy is used by `asynclet.run(..., retry=...)` and
+    `TaskManager.submit(..., retry=...)`.
 
     Notes:
     - Retries are **exception-based** only (no result predicates).
-    - Jitter is optional; disable for deterministic tests.
+    - Jitter is optional; set `jitter=0.0` for deterministic tests.
     """
 
     max_attempts: int = 1
@@ -43,6 +46,12 @@ class RetryPolicy:
             raise ValueError("RetryPolicy.max_elapsed must be > 0 when set")
 
     def should_retry(self, exc: BaseException) -> bool:
+        """
+        Decide whether the given exception is eligible for retry.
+
+        Returns:
+            `True` if `exc` matches `retry_on` and `retry_if` (if provided).
+        """
         if not isinstance(exc, self.retry_on):
             return False
         if self.retry_if is not None and not self.retry_if(exc):
@@ -51,9 +60,13 @@ class RetryPolicy:
 
     def delay_for_attempt(self, attempt_index: int) -> float:
         """
-        Compute the delay before attempt (attempt_index+2).
+        Compute the delay before the next retry attempt.
 
-        attempt_index is 0 for a retry after the first failure, 1 after the second, etc.
+        Args:
+            attempt_index: 0 for a retry after the first failure, 1 after the second, etc.
+
+        Returns:
+            Delay in seconds (>= 0), including optional jitter and max delay cap.
         """
         if attempt_index < 0:
             raise ValueError("attempt_index must be >= 0")
@@ -69,6 +82,12 @@ class RetryPolicy:
         return time.monotonic()
 
     def exceeded_elapsed(self, started_at: float) -> bool:
+        """
+        Whether the max elapsed time budget has been exceeded.
+
+        Args:
+            started_at: Start time returned by `start_time()`.
+        """
         if self.max_elapsed is None:
             return False
         return (time.monotonic() - started_at) >= self.max_elapsed

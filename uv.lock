@@ -160,7 +160,7 @@ wheels = [
 
 [[package]]
 name = "asynclet"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "asyncer", version = "0.0.14", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },

@@ -1,9 +1,11 @@
 """
-Optional APScheduler integration — install with ``pip install 'asynclet[scheduler]'``.
+APScheduler-backed scheduling helpers (optional extra).
 
-To drive timers on the same loop as asynclet tasks, obtain the loop with
-``asynclet.worker.get_worker_loop()`` and configure ``AsyncIOScheduler`` with that loop
-(see APScheduler docs for ``AsyncIOScheduler(event_loop=...)``).
+Install:
+    `pip install 'asynclet[scheduler]'`
+
+The scheduler is bound to asynclet's dedicated worker loop so scheduled jobs submit
+tasks on the same background loop used by `asynclet.run`.
 """
 
 from __future__ import annotations
@@ -39,6 +41,8 @@ except ImportError:
 
 
 class SchedulerUnavailable(RuntimeError):
+    """Raised when scheduling helpers are used without APScheduler installed."""
+
     pass
 
 
@@ -52,7 +56,13 @@ def _require_scheduler() -> Type["_AsyncIOScheduler"]:
 
 @dataclass(frozen=True)
 class ScheduledTask:
-    """Returned by scheduling helpers to identify the job and latest task alias."""
+    """
+    Metadata returned by scheduling helpers.
+
+    Attributes:
+        job_id: APScheduler job id.
+        latest_task_key: Optional manager alias key (`global:{name}`) when `latest_task_name` is used.
+    """
 
     job_id: str
     latest_task_key: Optional[str] = None
@@ -80,6 +90,12 @@ def get_default_scheduler() -> "_AsyncIOScheduler":
 def start_scheduler(
     scheduler: Optional["_AsyncIOScheduler"] = None,
 ) -> "_AsyncIOScheduler":
+    """
+    Start the scheduler (on the worker loop thread) and return it.
+
+    Args:
+        scheduler: Scheduler instance to start (defaults to the singleton).
+    """
     sch = scheduler or get_default_scheduler()
     if not sch.running:
         loop = get_worker_loop()
@@ -100,6 +116,13 @@ def start_scheduler(
 def shutdown_scheduler(
     scheduler: Optional["_AsyncIOScheduler"] = None, *, wait: bool = False
 ) -> None:
+    """
+    Shutdown the scheduler (on the worker loop thread).
+
+    Args:
+        scheduler: Scheduler instance to shutdown (defaults to the singleton if created).
+        wait: Whether to wait for running jobs (passed to APScheduler).
+    """
     sch = scheduler or _default_scheduler
     if sch is None:
         return
@@ -130,7 +153,9 @@ def schedule_interval(
     latest_task_name: Optional[str] = None,
 ) -> ScheduledTask:
     """
-    Schedule periodic execution of ``func``. Each tick submits an asynclet Task.
+    Schedule periodic execution of `func` using an interval trigger.
+
+    Each tick submits an asynclet `Task` via the provided manager.
 
     If ``latest_task_name`` is set, the latest Task is stored as a manager global alias
     under key ``global:{latest_task_name}``.
@@ -165,9 +190,9 @@ def schedule_cron(
     latest_task_name: Optional[str] = None,
 ) -> ScheduledTask:
     """
-    Schedule execution of ``func`` using a cron expression.
+    Schedule periodic execution of `func` using a cron expression.
 
-    The cron expression uses APScheduler's CronTrigger.from_crontab format.
+    The cron expression uses APScheduler's `CronTrigger.from_crontab` format.
     """
     sch = start_scheduler(scheduler)
     m = manager or get_default_manager()

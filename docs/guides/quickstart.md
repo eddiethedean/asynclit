@@ -10,5 +10,11 @@ else:
     print("working…")
 ```
 
+Example output:
+
+```text
+42
+```
+
 In rerun-driven UIs (like Streamlit), you typically store the `Task` in session state and poll it across reruns.
 
