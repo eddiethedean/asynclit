@@ -1,5 +1,5 @@
 """
-Minimal Streamlit app: session-scoped asynclet task + polling UI.
+Minimal Streamlit app: session-scoped asynclit task + polling UI.
 
 Run manually: ``streamlit run tests/streamlit_apps/asynclet_poll_app.py``
 (from repo root, with the package installed).
@@ -11,7 +11,7 @@ import time
 
 import streamlit as st
 
-import asynclet
+import asynclit as asynclet
 
 
 def heavy() -> int:

@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 
-import asynclet
+import asynclit as asynclet
 
 from .helpers import wait_done, wait_done_async
 
@@ -534,7 +534,7 @@ def test_cancel_stops_retry_loop():
 
 
 def test_worker_loop_singleton():
-    import asynclet.worker as worker
+    import asynclit.worker as worker
 
     loop_a = worker.get_worker_loop()
     loop_b = worker.get_worker_loop()

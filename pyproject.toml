@@ -3,13 +3,13 @@ requires = ["hatchling>=1.21.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "asynclet"
+name = "asynclit"
 version = "0.2.1"
 description = "Async task layer for Streamlit: background sync/async work, polling, progress, cancellation"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
-authors = [{ name = "asynclet contributors" }]
+authors = [{ name = "asynclit contributors" }]
 keywords = ["streamlit", "async", "background", "tasks"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -43,13 +43,13 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/asynclet/asynclet"
+Homepage = "https://github.com/eddiethedean/asynclit"
 
 [tool.hatch.build.targets.wheel]
-packages = ["asynclet"]
+packages = ["asynclit", "asynclet"]
 
 [tool.hatch.build.targets.sdist]
-include = ["asynclet"]
+include = ["asynclit", "asynclet"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

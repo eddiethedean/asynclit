@@ -1,8 +1,8 @@
-# asynclet
+# asynclit
 
 Async task layer for Streamlit-style “rerun” UIs.
 
-Use asynclet when you need to kick off background work without blocking the UI thread, then **poll** for completion across reruns. It supports:
+Use asynclit when you need to kick off background work without blocking the UI thread, then **poll** for completion across reruns. It supports:
 
 - **Sync + async** callables
 - **Polling** (`task.done`, `task.status`, `task.result`, `task.error`)
@@ -13,14 +13,14 @@ Use asynclet when you need to kick off background work without blocking the UI t
 ## Install
 
 ```bash
-pip install asynclet
+pip install asynclit
 ```
 
 Optional extras:
 
 ```bash
-pip install 'asynclet[streamlit]'
-pip install 'asynclet[scheduler]'
+pip install 'asynclit[streamlit]'
+pip install 'asynclit[scheduler]'
 ```
 
 ## Quick examples
@@ -28,9 +28,9 @@ pip install 'asynclet[scheduler]'
 ### Submit work and poll
 
 ```python
-import asynclet
+import asynclit
 
-task = asynclet.run(lambda: 21 * 2)
+task = asynclit.run(lambda: 21 * 2)
 if task.done:
     print(task.result)
 else:
@@ -40,14 +40,14 @@ else:
 ### Stream progress (async only)
 
 ```python
-import asynclet
+import asynclit
 
 async def job(queue, steps: int) -> int:
     for i in range(steps):
         await queue.async_q.put(i)
     return steps
 
-task = asynclet.run(job, 4)
+task = asynclit.run(job, 4)
 for x in task.progress:
     print("tick", x)
 ```
@@ -55,7 +55,7 @@ for x in task.progress:
 ### Retry transient failures
 
 ```python
-import asynclet
+import asynclit
 
 calls = {"n": 0}
 
@@ -66,7 +66,7 @@ def fetch_data() -> str:
         raise RuntimeError("transient")
     return "ok"
 
-policy = asynclet.RetryPolicy(
+policy = asynclit.RetryPolicy(
     max_attempts=5,
     retry_on=(RuntimeError,),
     base_delay=0.1,
@@ -75,7 +75,7 @@ policy = asynclet.RetryPolicy(
     jitter=0.0,
 )
 
-task = asynclet.run(fetch_data, retry=policy)
+task = asynclit.run(fetch_data, retry=policy)
 print("retries_calls=", calls["n"])
 print("retries_status=", task.status.value)
 if task.done:
@@ -85,7 +85,7 @@ if task.done:
 ### Schedule periodic jobs (APScheduler)
 
 ```python
-import asynclet
+import asynclit
 
 counter = {"n": 0}
 
@@ -95,9 +95,9 @@ def load_data() -> int:
     return counter["n"]
 
 
-asynclet.schedule_interval(load_data, seconds=0.05, latest_task_name="load_data")
+asynclit.schedule_interval(load_data, seconds=0.05, latest_task_name="load_data")
 
-m = asynclet.get_default_manager()
+m = asynclit.get_default_manager()
 latest = None
 
 import time
@@ -112,7 +112,7 @@ while time.monotonic() < deadline:
 print("scheduled_latest_done=", bool(latest and latest.done))
 print("scheduled_latest_result=", latest.result if latest and latest.done else None)
 
-asynclet.shutdown_scheduler(wait=False)
+asynclit.shutdown_scheduler(wait=False)
 ```
 
 ## Where to go next

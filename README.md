@@ -1,24 +1,24 @@
-# asynclet
+# asynclit
 
-[![Read the Docs](https://readthedocs.org/projects/asynclet/badge/?version=latest)](https://asynclet.readthedocs.io/)
-[![PyPI version](https://img.shields.io/pypi/v/asynclet.svg)](https://pypi.org/project/asynclet/)
-[![Python versions](https://img.shields.io/pypi/pyversions/asynclet.svg)](https://pypi.org/project/asynclet/)
-[![License](https://img.shields.io/pypi/l/asynclet.svg)](LICENSE)
+[![Read the Docs](https://readthedocs.org/projects/asynclit/badge/?version=latest)](https://asynclit.readthedocs.io/)
+[![PyPI version](https://img.shields.io/pypi/v/asynclit.svg)](https://pypi.org/project/asynclit/)
+[![Python versions](https://img.shields.io/pypi/pyversions/asynclit.svg)](https://pypi.org/project/asynclit/)
+[![License](https://img.shields.io/pypi/l/asynclit.svg)](LICENSE)
 
-**Documentation**: [asynclet.readthedocs.io](https://asynclet.readthedocs.io/)
+**Documentation**: [asynclit.readthedocs.io](https://asynclit.readthedocs.io/)
 
 Small **async task layer** for [Streamlit](https://streamlit.io/) (and similar “sync main thread + rerun” UIs): run sync or async work on a **dedicated background event loop**, then **poll** status, results, **progress**, and **cancellation** without blocking the UI thread.
 
 ## Install
 
 ```bash
-pip install asynclet
+pip install asynclit
 ```
 
 Optional extras:
 
-- **Streamlit** (for a typical app environment): `pip install 'asynclet[streamlit]'`
-- **APScheduler** (optional timers/jobs): `pip install 'asynclet[scheduler]'`
+- **Streamlit** (for a typical app environment): `pip install 'asynclit[streamlit]'`
+- **APScheduler** (optional timers/jobs): `pip install 'asynclit[scheduler]'`
 
 Requires **Python 3.9+**.
 
@@ -26,9 +26,9 @@ Requires **Python 3.9+**.
 
 ```python
 import streamlit as st
-import asynclet
+import asynclit
 
-task = asynclet.run(fetch_data)
+task = asynclit.run(fetch_data)
 
 if task.done:
     st.write(task.result)
@@ -50,7 +50,7 @@ run 1 ['ready:138']
 
 | Item | Role |
 |------|------|
-| `asynclet.run(func, /, *args, manager=None, retry=None, **kwargs)` | Submit `func` on the worker; returns a `Task`. |
+| `asynclit.run(func, /, *args, manager=None, retry=None, **kwargs)` | Submit `func` on the worker; returns a `Task`. |
 | `Task.done` | Whether the result (or error) is ready. |
 | `Task.result` | Result value; raises if not complete. |
 | `Task.status` | `TaskStatus`: `PENDING`, `RUNNING`, `DONE`, `ERROR`, `CANCELLED`. |
@@ -60,7 +60,7 @@ run 1 ['ready:138']
 | `TaskManager` / `get_default_manager()` | Custom registry and `cleanup()` when you keep many completed tasks. |
 | `session_tasks(session_state)` | Dict stored on `st.session_state` for named tasks. |
 | `RetryPolicy` | Retry configuration for exception-based retries. |
-| `schedule_interval(...)` / `schedule_cron(...)` | Schedule periodic task submissions (requires `asynclet[scheduler]`). |
+| `schedule_interval(...)` / `schedule_cron(...)` | Schedule periodic task submissions (requires `asynclit[scheduler]`). |
 
 ## Progress (Janus)
 
@@ -68,8 +68,8 @@ Progress is supported for **async** functions only.
 
 Declare a parameter named **`queue`** or **`progress_queue`**:
 
-- If it is the **first** parameter, asynclet injects the Janus queue **positionally** and the remaining positional arguments to `run()` map to the rest of the signature.
-- Otherwise, asynclet injects the queue by **keyword** (`queue=` / `progress_queue=`).
+- If it is the **first** parameter, asynclit injects the Janus queue **positionally** and the remaining positional arguments to `run()` map to the rest of the signature.
+- Otherwise, asynclit injects the queue by **keyword** (`queue=` / `progress_queue=`).
 
 ```python
 async def job(queue, steps: int):
@@ -77,7 +77,7 @@ async def job(queue, steps: int):
         await queue.async_q.put(i)
     return steps
 
-task = asynclet.run(job, 10)
+task = asynclit.run(job, 10)
 # Each rerun:
 for x in task.progress:
     st.write(x)
@@ -89,11 +89,11 @@ The UI thread reads via `task.progress`, which pulls from the sync side of a [ja
 
 ```python
 import streamlit as st
-import asynclet
+import asynclit
 
-tasks = asynclet.session_tasks(st.session_state)
+tasks = asynclit.session_tasks(st.session_state)
 if "load" not in tasks:
-    tasks["load"] = asynclet.run(load_data)
+    tasks["load"] = asynclit.run(load_data)
 
 task = tasks["load"]
 ```
@@ -105,10 +105,10 @@ task = tasks["load"]
 Use `session_tasks(st.session_state)` as a stable dict to store tasks across reruns:
 
 ```python
-tasks = asynclet.session_tasks(st.session_state)
+tasks = asynclit.session_tasks(st.session_state)
 
 if "load" not in tasks:
-    tasks["load"] = asynclet.run(load_data)
+    tasks["load"] = asynclit.run(load_data)
 
 task = tasks["load"]
 ```
@@ -118,8 +118,8 @@ task = tasks["load"]
 If you create many tasks over time, keep them in a `TaskManager` and periodically call `cleanup()` to trim completed entries:
 
 ```python
-m = asynclet.TaskManager(max_completed=256)
-task = asynclet.run(load_data, manager=m)
+m = asynclit.TaskManager(max_completed=256)
+task = asynclit.run(load_data, manager=m)
 
 # ... later:
 m.cleanup()
@@ -130,7 +130,7 @@ m.cleanup()
 If the callable raises, `task.status` becomes `ERROR`, `task.error` holds the exception, and reading `task.result` re-raises it.
 
 ```python
-if task.status == asynclet.TaskStatus.ERROR:
+if task.status == asynclit.TaskStatus.ERROR:
     st.error(f"failed: {task.error!r}")
 elif task.done:
     st.write(task.result)
@@ -157,7 +157,7 @@ Treat `CANCELLED` as a terminal state in UI code.
 Use `RetryPolicy` for exception-based retries (opt-in per `run()` / `TaskManager.submit()`).
 
 ```python
-policy = asynclet.RetryPolicy(
+policy = asynclit.RetryPolicy(
     max_attempts=3,
     base_delay=0.1,
     max_delay=1.0,
@@ -165,7 +165,7 @@ policy = asynclet.RetryPolicy(
     jitter=0.0,
 )
 
-task = asynclet.run(fetch_data, retry=policy)
+task = asynclit.run(fetch_data, retry=policy)
 ```
 
 Retries stop when attempts are exhausted, the task is cancelled, or a raised exception does not match the policy.
@@ -175,16 +175,16 @@ Retries stop when attempts are exhausted, the task is cancelled, or a raised exc
 Install with:
 
 ```bash
-pip install 'asynclet[scheduler]'
+pip install 'asynclit[scheduler]'
 ```
 
 Then schedule periodic task submission on the worker loop:
 
 ```python
-asynclet.schedule_interval(load_data, seconds=60, latest_task_name="load_data")
+asynclit.schedule_interval(load_data, seconds=60, latest_task_name="load_data")
 
 # Later (poll the most recent task):
-m = asynclet.get_default_manager()
+m = asynclit.get_default_manager()
 latest = m.get("global:load_data")
 if latest and latest.done:
     st.write(latest.result)

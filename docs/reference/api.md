@@ -1,6 +1,6 @@
 # API reference
 
-```{automodule} asynclet
+```{automodule} asynclit
 ---
 members:
 undoc-members:

@@ -3,8 +3,8 @@ from __future__ import annotations
 import datetime
 
 
-project = "asynclet"
-author = "asynclet contributors"
+project = "asynclit"
+author = "asynclit contributors"
 copyright = f"{datetime.datetime.now().year}, {author}"
 
 extensions = [
@@ -15,7 +15,7 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "asynclet-spec.md"]
 
 html_theme = "alabaster"
 

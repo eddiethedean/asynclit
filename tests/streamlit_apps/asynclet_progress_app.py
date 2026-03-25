@@ -1,5 +1,5 @@
 """
-Streamlit app: asynclet progress streaming (Janus) across reruns.
+Streamlit app: asynclit progress streaming (Janus) across reruns.
 
 Run manually: ``streamlit run tests/streamlit_apps/asynclet_progress_app.py``
 """
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-import asynclet
+import asynclit as asynclet
 
 
 async def emit(queue, steps: int) -> int:

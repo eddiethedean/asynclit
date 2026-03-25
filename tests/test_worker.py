@@ -4,12 +4,12 @@ import asyncio
 
 import pytest
 
-import asynclet
+import asynclit as asynclet
 
 
 @pytest.mark.asyncio
 async def test_submit_coro_from_inside_worker_loop_returns_future():
-    import asynclet.worker as worker
+    import asynclit.worker as worker
 
     seen: dict[str, int] = {}
 

@@ -10,7 +10,7 @@ import time
 
 import streamlit as st
 
-import asynclet
+import asynclit as asynclet
 
 
 def work() -> int:

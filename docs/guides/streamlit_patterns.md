@@ -4,11 +4,11 @@
 
 ```python
 import streamlit as st
-import asynclet
+import asynclit
 
-tasks = asynclet.session_tasks(st.session_state)
+tasks = asynclit.session_tasks(st.session_state)
 if "load" not in tasks:
-    tasks["load"] = asynclet.run(load_data)
+    tasks["load"] = asynclit.run(load_data)
 
 task = tasks["load"]
 if task.done:
@@ -29,15 +29,15 @@ run 1 ['ready:138']
 
 ```python
 import streamlit as st
-import asynclet
+import asynclit
 
 async def job(queue, n: int) -> int:
     for i in range(n):
         await queue.async_q.put(i)
     return n
 
-tasks = asynclet.session_tasks(st.session_state)
-tasks.setdefault("job", asynclet.run(job, 5))
+tasks = asynclit.session_tasks(st.session_state)
+tasks.setdefault("job", asynclit.run(job, 5))
 
 task = tasks["job"]
 for x in task.progress:

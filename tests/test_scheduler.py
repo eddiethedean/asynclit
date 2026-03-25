@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-import asynclet
+import asynclit as asynclet
 
 from .helpers import wait_done
 

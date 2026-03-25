@@ -3,7 +3,7 @@
 Retries are **opt-in** and **exception-based**.
 
 ```python
-import asynclet
+import asynclit
 
 
 calls = {"n": 0}
@@ -16,7 +16,7 @@ def flaky_fetch() -> str:
     return "ok"
 
 
-policy = asynclet.RetryPolicy(
+policy = asynclit.RetryPolicy(
     max_attempts=5,
     retry_on=(RuntimeError,),
     base_delay=0.1,
@@ -25,7 +25,7 @@ policy = asynclet.RetryPolicy(
     jitter=0.0,
 )
 
-task = asynclet.run(flaky_fetch, retry=policy)
+task = asynclit.run(flaky_fetch, retry=policy)
 
 import time
 

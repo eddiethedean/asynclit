@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-import asynclet
+import asynclit as asynclet
 
 
 bucket = asynclet.session_tasks(st.session_state, key="bucket_test")

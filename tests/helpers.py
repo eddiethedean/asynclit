@@ -7,7 +7,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from asynclet.task import Task
+    from asynclit.task import Task
 
 
 def wait_done(task: Task[Any], *, timeout: float = 15.0, poll: float = 0.005) -> None:

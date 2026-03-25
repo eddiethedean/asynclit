@@ -1,7 +1,7 @@
 """
 Integration tests using Streamlit's headless ``AppTest`` API.
 
-Background work is scheduled on asynclet's worker thread. ``AppTest.run()`` returns as
+Background work is scheduled on asynclit's worker thread. ``AppTest.run()`` returns as
 soon as the script finishes, so rapid back-to-back runs may observe ``wait`` forever unless
 the test allows a little wall time between runs (mirrors a human delay between reruns) or
 the app cooperates with a short in-script pause (see ``asynclet_poll_cooperative_app``).

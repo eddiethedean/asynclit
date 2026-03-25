@@ -1,9 +1,9 @@
 # Quickstart
 
 ```python
-import asynclet
+import asynclit
 
-task = asynclet.run(lambda: 21 * 2)
+task = asynclit.run(lambda: 21 * 2)
 if task.done:
     print(task.result)
 else:
