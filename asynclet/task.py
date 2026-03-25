@@ -71,7 +71,11 @@ class Task(Generic[T]):
     def cancel(self) -> bool:
         """Request cancellation. Returns True if cancellation was scheduled or the result future was cancelled."""
         with self._lock:
-            if self._status in (TaskStatus.DONE, TaskStatus.ERROR, TaskStatus.CANCELLED):
+            if self._status in (
+                TaskStatus.DONE,
+                TaskStatus.ERROR,
+                TaskStatus.CANCELLED,
+            ):
                 return False
             aio_task = self._asyncio_task
             loop = self._loop
@@ -89,7 +93,9 @@ class Task(Generic[T]):
             return self._result_fut.cancel()
         return False
 
-    def _bind_worker_task(self, aio_task: asyncio.Task[Any], loop: asyncio.AbstractEventLoop) -> None:
+    def _bind_worker_task(
+        self, aio_task: asyncio.Task[Any], loop: asyncio.AbstractEventLoop
+    ) -> None:
         with self._lock:
             self._asyncio_task = aio_task
             self._loop = loop

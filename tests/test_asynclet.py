@@ -346,6 +346,152 @@ async def test_progress_mid_run_drains_without_duplication():
     assert task.progress == []
 
 
+def test_retry_policy_delay_computation():
+    p = asynclet.RetryPolicy(
+        max_attempts=3, base_delay=0.1, multiplier=2.0, max_delay=1.0, jitter=0.0
+    )
+    assert p.delay_for_attempt(0) == pytest.approx(0.1)
+    assert p.delay_for_attempt(1) == pytest.approx(0.2)
+    assert p.delay_for_attempt(2) == pytest.approx(0.4)
+
+
+def test_retries_sync_function_eventually_succeeds():
+    calls = {"n": 0}
+
+    def flaky() -> int:
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise RuntimeError("nope")
+        return 7
+
+    task = asynclet.run(
+        flaky, retry=asynclet.RetryPolicy(max_attempts=5, base_delay=0.0)
+    )
+    wait_done(task)
+    assert task.status == asynclet.TaskStatus.DONE
+    assert task.result == 7
+    assert calls["n"] == 3
+
+
+@pytest.mark.asyncio
+async def test_retries_async_function_eventually_succeeds():
+    calls = {"n": 0}
+
+    async def flaky() -> int:
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise RuntimeError("nope")
+        return 9
+
+    task = asynclet.run(
+        flaky, retry=asynclet.RetryPolicy(max_attempts=5, base_delay=0.0)
+    )
+    await wait_done_async(task)
+    assert task.status == asynclet.TaskStatus.DONE
+    assert task.result == 9
+    assert calls["n"] == 3
+
+
+def test_retries_stop_after_max_attempts():
+    calls = {"n": 0}
+
+    def always() -> None:
+        calls["n"] += 1
+        raise ValueError("bad")
+
+    task = asynclet.run(
+        always,
+        retry=asynclet.RetryPolicy(
+            max_attempts=3, base_delay=0.0, retry_on=(ValueError,)
+        ),
+    )
+    wait_done(task)
+    assert task.status == asynclet.TaskStatus.ERROR
+    assert calls["n"] == 3
+    with pytest.raises(ValueError, match="bad"):
+        _ = task.result
+
+
+def test_retries_do_not_retry_on_unmatched_exception():
+    calls = {"n": 0}
+
+    def always() -> None:
+        calls["n"] += 1
+        raise KeyError("k")
+
+    task = asynclet.run(
+        always,
+        retry=asynclet.RetryPolicy(
+            max_attempts=5, base_delay=0.0, retry_on=(ValueError,)
+        ),
+    )
+    wait_done(task)
+    assert task.status == asynclet.TaskStatus.ERROR
+    assert calls["n"] == 1
+    with pytest.raises(KeyError):
+        _ = task.result
+
+
+def test_retry_policy_retry_if_predicate_blocks_retry():
+    calls = {"n": 0}
+
+    def always() -> None:
+        calls["n"] += 1
+        raise RuntimeError("stop")
+
+    policy = asynclet.RetryPolicy(
+        max_attempts=5,
+        base_delay=0.0,
+        retry_on=(RuntimeError,),
+        retry_if=lambda exc: "nope" in str(exc),
+    )
+    task = asynclet.run(always, retry=policy)
+    wait_done(task)
+    assert task.status == asynclet.TaskStatus.ERROR
+    assert calls["n"] == 1
+
+
+def test_retry_policy_max_elapsed_stops_retrying():
+    calls = {"n": 0}
+
+    def always() -> None:
+        calls["n"] += 1
+        raise RuntimeError("nope")
+
+    policy = asynclet.RetryPolicy(
+        max_attempts=10,
+        base_delay=0.02,
+        retry_on=(RuntimeError,),
+        max_elapsed=0.05,
+        jitter=0.0,
+    )
+    task = asynclet.run(always, retry=policy)
+    wait_done(task)
+    assert task.status == asynclet.TaskStatus.ERROR
+    # We don't assert exact attempts (timing), but it should stop before max_attempts.
+    assert 1 <= calls["n"] < 10
+
+
+def test_cancel_stops_retry_loop():
+    calls = {"n": 0}
+
+    def always() -> None:
+        calls["n"] += 1
+        raise RuntimeError("nope")
+
+    policy = asynclet.RetryPolicy(
+        max_attempts=100, base_delay=0.01, retry_on=(RuntimeError,), jitter=0.0
+    )
+    task = asynclet.run(always, retry=policy)
+    time.sleep(0.05)
+    assert task.cancel() is True
+    wait_done(task)
+    assert task.status == asynclet.TaskStatus.CANCELLED
+    before = calls["n"]
+    time.sleep(0.05)
+    assert calls["n"] == before
+
+
 def test_worker_loop_singleton():
     import asynclet.worker as worker
 

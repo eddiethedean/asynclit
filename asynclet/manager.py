@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 from asyncer import asyncify
 
+from asynclet.retry import RetryPolicy
 from asynclet.task import Task, TaskStatus, new_task_id
 from asynclet.worker import submit_coro
 
@@ -54,12 +55,19 @@ class TaskManager:
         self._lock = threading.Lock()
         self._max_completed = max_completed
 
-    def submit(self, func: Callable[..., T], /, *args: Any, **kwargs: Any) -> Task[T]:
+    def submit(
+        self,
+        func: Callable[..., T],
+        /,
+        *args: Any,
+        retry: Optional[RetryPolicy] = None,
+        **kwargs: Any,
+    ) -> Task[T]:
         task_id = new_task_id()
         task: Task[T] = Task(task_id)
         with self._lock:
             self._tasks[task_id] = task
-        submit_coro(self._execute(task, func, args, kwargs))
+        submit_coro(self._execute(task, func, args, kwargs, retry=retry))
         self._cleanup_if_needed()
         return task
 
@@ -92,6 +100,8 @@ class TaskManager:
         func: Callable[..., Any],
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
+        *,
+        retry: Optional[RetryPolicy],
     ) -> None:
         progress_q = None
         try:
@@ -103,20 +113,43 @@ class TaskManager:
             if task.status == TaskStatus.CANCELLED:
                 raise asyncio.CancelledError
 
-            if inspect.iscoroutinefunction(func):
-                if _wants_progress_queue(func):
-                    import janus
+            started_at = retry.start_time() if retry is not None else 0.0
+            attempt = 0
 
-                    progress_q = janus.Queue()
-                    task._set_progress_queue(progress_q)
-                    args, kwargs = _bind_progress_queue(func, progress_q, args, kwargs)
-                result = await func(*args, **kwargs)
-            else:
-                runner = asyncify(func)
-                result = await runner(*args, **kwargs)
+            if inspect.iscoroutinefunction(func) and _wants_progress_queue(func):
+                import janus
 
-            if task.status != TaskStatus.CANCELLED:
-                task._complete_ok(result)
+                progress_q = janus.Queue()
+                task._set_progress_queue(progress_q)
+                args, kwargs = _bind_progress_queue(func, progress_q, args, kwargs)
+
+            while True:
+                if task.status == TaskStatus.CANCELLED:
+                    raise asyncio.CancelledError
+                try:
+                    if inspect.iscoroutinefunction(func):
+                        result = await func(*args, **kwargs)
+                    else:
+                        runner = asyncify(func)
+                        result = await runner(*args, **kwargs)
+                    if task.status != TaskStatus.CANCELLED:
+                        task._complete_ok(result)
+                    return
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    if retry is None:
+                        raise
+                    if not retry.should_retry(exc):
+                        raise
+                    attempt += 1
+                    if attempt >= retry.max_attempts:
+                        raise
+                    if retry.exceeded_elapsed(started_at):
+                        raise
+                    delay = retry.delay_for_attempt(attempt_index=attempt - 1)
+                    if delay:
+                        await asyncio.sleep(delay)
         except asyncio.CancelledError:
             task._complete_cancelled()
         except Exception as exc:
@@ -154,6 +187,7 @@ def run(
     /,
     *args: Any,
     manager: Optional[TaskManager] = None,
+    retry: Optional[RetryPolicy] = None,
     **kwargs: Any,
 ) -> Task[T]:
     """
@@ -164,4 +198,4 @@ def run(
     :class:`janus.Queue` is created and injected for streaming progress to the UI thread.
     """
     m = manager or get_default_manager()
-    return m.submit(func, *args, **kwargs)
+    return m.submit(func, *args, retry=retry, **kwargs)

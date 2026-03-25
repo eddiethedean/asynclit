@@ -20,21 +20,21 @@ Already in scope for this line:
 
 Possible **patch** work (still 0.1.x):
 
-- Docs and examples (Streamlit snippets, edge cases)  
--   - Add a short “patterns” section: session-scoped tasks, named tasks, and cleanup guidance
--   - Document progress queue injection rules (`queue`/`progress_queue`, positional vs keyword)
--   - Document cancellation semantics (pending vs running) and what callers should expect
--   - Add a small troubleshooting/FAQ (common “why does it stay `wait`?” rerun timing gotchas)
--   - Expand examples to show error handling (`task.status`, `task.error`) and retries as user-land patterns
-- Typing and API polish without breaking changes  
--   - Tighten generics on `Task[T]` and `TaskManager.submit/run` return types
--   - Clarify and standardize public annotations (`Task.progress`, `Task.error`, `session_tasks` mapping types)
--   - Ensure `asynclet/scheduler.py` optional export is typed cleanly when APScheduler is missing
-- Test coverage for races and cancellation edge cases  
--   - Stress-test rapid submit/cancel before bind (“pending cancellation”) and ensure status settles correctly
--   - Add concurrency tests for many tasks completing out of order (result correctness + registry consistency)
--   - Add cancellation tests for: already-done, already-cancelled, and cancel-after-error idempotency
--   - Add progress tests for mid-run polling (drain behavior) vs tail buffering after completion
+### Completed (0.1.x)
+
+- Docs and examples (Streamlit snippets, edge cases)
+  - Added a “patterns” section: session-scoped tasks, named tasks, and cleanup guidance
+  - Documented progress queue injection rules (`queue`/`progress_queue`, positional vs keyword)
+  - Documented cancellation semantics (pending vs running) and what callers should expect
+  - Added a troubleshooting/FAQ for rerun timing gotchas (“why does it stay `wait`?”)
+  - Expanded examples to show error handling (`task.status`, `task.error`) and user-land retry patterns
+- Typing and API polish without breaking changes
+  - Ensured `asynclet/scheduler.py` optional export is typed cleanly when APScheduler is missing
+- Test coverage for races and cancellation edge cases
+  - Added coverage for pending-cancellation result behavior
+  - Added concurrency coverage for out-of-order completion and registry consistency
+  - Added cancellation idempotency coverage (including cancel-after-error)
+  - Added progress tests for mid-run polling (drain behavior) vs tail buffering after completion
 
 ---
 
@@ -42,9 +42,13 @@ Possible **patch** work (still 0.1.x):
 
 **Theme:** scheduling and resilience.
 
-- **APScheduler**: documented helpers or small wrapper types for periodic work and retries on the worker loop  
-- **Retries**: configurable retry/backoff for failed tasks (opt-in per `run` or manager)  
-- **Cancellation**: optional **anyio**-style or clearer cooperative-cancel patterns where it helps  
+### Completed (0.2)
+
+- **APScheduler**: first-class wrapper API (optional via `asynclet[scheduler]`)
+  - `get_default_scheduler()`, `start_scheduler()`, `shutdown_scheduler()`
+  - `schedule_interval(...)` and `schedule_cron(...)` (jobs submit asynclet tasks; optional “latest task” alias)
+- **Retries**: exception-based `RetryPolicy` with backoff (opt-in per `run` / `TaskManager.submit`)
+- **Cancellation**: clearer cooperative-cancel patterns documented (async vs sync caveats)
 
 ---
 

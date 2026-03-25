@@ -35,7 +35,7 @@ On each rerun, check `task.done` and read `task.result` when finished.
 
 | Item | Role |
 |------|------|
-| `asynclet.run(func, /, *args, manager=None, **kwargs)` | Submit `func` on the worker; returns a `Task`. |
+| `asynclet.run(func, /, *args, manager=None, retry=None, **kwargs)` | Submit `func` on the worker; returns a `Task`. |
 | `Task.done` | Whether the result (or error) is ready. |
 | `Task.result` | Result value; raises if not complete. |
 | `Task.status` | `TaskStatus`: `PENDING`, `RUNNING`, `DONE`, `ERROR`, `CANCELLED`. |
@@ -44,6 +44,8 @@ On each rerun, check `task.done` and read `task.result` when finished.
 | `Task.progress` | Non-blocking drain of progress values (see below). |
 | `TaskManager` / `get_default_manager()` | Custom registry and `cleanup()` when you keep many completed tasks. |
 | `session_tasks(session_state)` | Dict stored on `st.session_state` for named tasks. |
+| `RetryPolicy` | Retry configuration for exception-based retries. |
+| `schedule_interval(...)` / `schedule_cron(...)` | Schedule periodic task submissions (requires `asynclet[scheduler]`). |
 
 ## Progress (Janus)
 
@@ -129,6 +131,49 @@ else:
 - If the task is still **pending** (not yet bound on the worker loop), it cancels the result future.
 
 Treat `CANCELLED` as a terminal state in UI code.
+
+### Cooperative cancellation patterns
+
+- **Async jobs**: rely on `asyncio` cancellation; add cancellation checkpoints when doing long CPU work (break work into chunks; `await` occasionally).
+- **Sync jobs**: cancellation is best-effort; the underlying threadpool work may continue running. Prefer chunked work that you can stop between chunks.
+
+## Retries
+
+Use `RetryPolicy` for exception-based retries (opt-in per `run()` / `TaskManager.submit()`).
+
+```python
+policy = asynclet.RetryPolicy(
+    max_attempts=3,
+    base_delay=0.1,
+    max_delay=1.0,
+    multiplier=2.0,
+    jitter=0.0,
+)
+
+task = asynclet.run(fetch_data, retry=policy)
+```
+
+Retries stop when attempts are exhausted, the task is cancelled, or a raised exception does not match the policy.
+
+## Scheduling (APScheduler)
+
+Install with:
+
+```bash
+pip install 'asynclet[scheduler]'
+```
+
+Then schedule periodic task submission on the worker loop:
+
+```python
+asynclet.schedule_interval(load_data, seconds=60, latest_task_name="load_data")
+
+# Later (poll the most recent task):
+m = asynclet.get_default_manager()
+latest = m.get("global:load_data")
+if latest and latest.done:
+    st.write(latest.result)
+```
 
 ## Troubleshooting / FAQ
 

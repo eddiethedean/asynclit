@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, MutableMapping
+from typing import Any, Dict, cast
 
 
 def session_tasks(
-    session_state: MutableMapping[str, Any],
+    session_state: Any,
     key: str = "asynclet_tasks",
 ) -> Dict[str, Any]:
     """
@@ -22,4 +22,4 @@ def session_tasks(
     """
     if key not in session_state:
         session_state[key] = {}
-    return session_state[key]
+    return cast(Dict[str, Any], session_state[key])

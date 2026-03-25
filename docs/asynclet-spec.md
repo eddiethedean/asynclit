@@ -44,7 +44,7 @@ The library does not replace Streamlit’s execution model; it complements it by
 ### 3.4 Scheduler (optional)
 
 - **APScheduler** is an **optional dependency** (`asynclet[scheduler]`).  
-- The package does not yet ship a first-class scheduler wrapper; integrators can attach schedulers to the worker loop via **`asynclet.worker.get_worker_loop()`** if needed.  
+- In 0.2+, asynclet can provide **first-class scheduling helpers** that create an `AsyncIOScheduler` bound to the worker loop and schedule jobs that submit asynclet tasks.
 
 ---
 
@@ -167,6 +167,13 @@ In Streamlit-style rerun models, the script run that *submits* the task will usu
 - **`task.error`** holds the exception when **`task.status == TaskStatus.ERROR`**.  
 - Accessing **`task.result`** when complete but failed re-raises the stored exception.  
 
+---
+
+## 10.1 Retries
+
+Retries are **opt-in** and **exception-based**.
+
+- A **`RetryPolicy`** can be provided per submission (for example via `asynclet.run(..., retry=...)`).\n+- Only raised exceptions are eligible for retry; returned values are not inspected.\n+- Cancellation stops any ongoing attempt and prevents further retries.\n+
 ---
 
 ## 11. Cancellation
