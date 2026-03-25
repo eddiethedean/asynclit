@@ -173,7 +173,10 @@ In Streamlit-style rerun models, the script run that *submits* the task will usu
 
 Retries are **opt-in** and **exception-based**.
 
-- A **`RetryPolicy`** can be provided per submission (for example via `asynclet.run(..., retry=...)`).\n+- Only raised exceptions are eligible for retry; returned values are not inspected.\n+- Cancellation stops any ongoing attempt and prevents further retries.\n+
+- A **`RetryPolicy`** can be provided per submission (for example via `asynclet.run(..., retry=...)`).
+- Only raised exceptions are eligible for retry; returned values are not inspected.
+- Cancellation stops any ongoing attempt and prevents further retries.
+
 ---
 
 ## 11. Cancellation

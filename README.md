@@ -208,6 +208,16 @@ uv run pytest
 
 The **dev** extra includes Streamlit so CI can run headless **[AppTest](https://docs.streamlit.io/develop/api-reference/app-testing)** checks in `tests/test_streamlit_apptest.py` against the sample apps under `tests/streamlit_apps/`.
 
+## Docs
+
+Build the documentation (Sphinx + MyST):
+
+```bash
+uv venv
+uv pip install -e '.[docs]'
+uv run python -m sphinx -b html docs docs/_build/html
+```
+
 ## License
 
 MIT.

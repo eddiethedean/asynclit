@@ -29,10 +29,17 @@ dependencies = [
 [project.optional-dependencies]
 streamlit = ["streamlit>=1.28.0"]
 scheduler = ["apscheduler>=3.10.0"]
+docs = [
+  "sphinx>=7.0",
+  "myst-parser>=2.0",
+  "sphinx-autodoc-typehints>=2.0",
+]
 dev = [
   "pytest>=7.0",
   "pytest-asyncio>=0.21",
   "streamlit>=1.33.0",
+  "build>=1.0",
+  "twine>=5.0",
 ]
 
 [project.urls]

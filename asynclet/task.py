@@ -63,6 +63,11 @@ class Task(Generic[T]):
                     out.append(sync_q.get_nowait())
                 except queue.Empty:
                     break
+                except Exception as exc:
+                    # janus raises when the queue is closed and drained
+                    if exc.__class__.__name__ in ("ShutDown", "SyncQueueShutDown"):
+                        break
+                    raise
         if self._progress_tail:
             out.extend(self._progress_tail)
             self._progress_tail.clear()
