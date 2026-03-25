@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "asynclet"
 version = "0.1.0"
 description = "Async task layer for Streamlit: background sync/async work, polling, progress, cancellation"
+readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [{ name = "asynclet contributors" }]
