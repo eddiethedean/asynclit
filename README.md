@@ -5,7 +5,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/asynclet.svg)](https://pypi.org/project/asynclet/)
 [![License](https://img.shields.io/pypi/l/asynclet.svg)](LICENSE)
 
-**Documentation**: `https://asynclet.readthedocs.io/`
+**Documentation**: [asynclet.readthedocs.io](https://asynclet.readthedocs.io/)
 
 Small **async task layer** for [Streamlit](https://streamlit.io/) (and similar “sync main thread + rerun” UIs): run sync or async work on a **dedicated background event loop**, then **poll** status, results, **progress**, and **cancellation** without blocking the UI thread.
 
