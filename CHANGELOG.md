@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Fix edge cases around progress queue shutdown handling.
+- Surface scheduler start/shutdown failures to callers and reset the default scheduler on shutdown.
+- Polish docstrings and ensure docs examples are runnable with real outputs.
+
 ## 0.2.0
 
 - Add `RetryPolicy` for exception-based retries with backoff.
